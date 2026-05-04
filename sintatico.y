@@ -133,6 +133,36 @@ DECLARACAO : TIPO TK_ID ';'
         YYABORT;
     }
   }
+  | TIPO TK_ID '=' E ';'
+  {
+    if (tabela_simbolos.count($2.label) == 0) {
+        string novo_t = gentempcode();
+        tabela_simbolos[$2.label] = novo_t;
+        tipo_temp[novo_t] = $1.tipo;
+
+        string t_src = $4.label;
+        string cast_code = "";
+
+        // Coerção na inicialização (ex: float x = 10;)
+        if ($1.tipo != $4.tipo) {
+            if (($1.tipo == "float" && $4.tipo == "int") || ($1.tipo == "int" && $4.tipo == "float")) {
+                t_src = gentempcode();
+                tipo_temp[t_src] = $1.tipo;
+                cast_code = "\t" + t_src + " = (" + $1.tipo + ") " + $4.label + ";\t// Cast na Inicializacao\n";
+            } else {
+                yyerror("Tipos incompativeis na inicializacao de '" + $2.label + "'");
+                YYABORT;
+            }
+        }
+
+        $$.traducao = $4.traducao + cast_code + 
+                      "\t// [DEBUG] Variavel " + $2.label + " inicializada em " + novo_t + "\n" +
+                      "\t" + novo_t + " = " + t_src + ";\n";
+    } else {
+        yyerror("Variavel '" + $2.label + "' ja foi declarada!");
+        YYABORT;
+    }
+  }
   ;
 
 ATRIBUICAO : TK_ID '=' E ';'
